@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SketchViz Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --primary: #2A2A2A; --accent: #FF6B6B; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { margin: 0; background-color: #ececec; font-family: 'Open Sans', sans-serif; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .mobile-frame { width: 100%; max-width: 400px; height: 100%; max-height: 850px; background: white; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.1); overflow: hidden; }
+
+        /* Header */
+        header { padding: 15px 20px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .brand { font-family: 'Architects Daughter', cursive; font-size: 24px; color: var(--primary); font-weight: bold; }
+        
+        /* Main Stage */
+        .stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: white; padding: 20px; overflow: hidden; }
+        #imagePlaceholder { max-width: 90%; max-height: 90%; opacity: 0.2; transition: opacity 0.5s; }
+        
+        /* Controls */
+        .control-panel { padding: 20px; background: white; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); }
+        textarea { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 12px; resize: none; outline: none; margin-bottom: 10px; font-family: inherit; }
+        textarea:focus { border-color: var(--primary); }
+
+        .action-btn { background: var(--primary); color: white; width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .action-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .status { margin-top: 10px; text-align: center; font-size: 14px; color: #666; height: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-frame">
+        <header>
+            <div class="brand">SketchViz Pro</div>
+        </header>
+
+        <div class="stage">
+            <img id="imagePlaceholder" src="https://cdn-icons-png.flaticon.com/512/3673/3673527.png" alt="Sketch placeholder">
+        </div>
+
+        <div class="control-panel">
+            <textarea id="prompt" rows="2" placeholder="Describe your doodle here (e.g., 'A friendly coding robot sketch')"></textarea>
+            <button class="action-btn" id="drawBtn" onclick="handleDraw()">Create Sketch</button>
+            <div class="status" id="status">Ready to create.</div>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // 👇👇 PASTE YOUR NETLIFY FUNCTION URL BELOW 👇👇
+        // =================================================================
+        
+        const API_PROXY_URL = 'https://luxury-chimera-038ceb.netlify.app/.netlify/functions/generate-doodle';
+        
+        // Example: 'https://luxury-chimera-123.netlify.app/.netlify/functions/generate-doodle';
+        // =================================================================
+
+        async function handleDraw() {
+            const prompt = document.getElementById('prompt').value.trim();
+            const btn = document.getElementById('drawBtn');
+            const status = document.getElementById('status');
+            const imageEl = document.getElementById('imagePlaceholder');
+
+            if (!prompt) { status.innerText = "Please describe your sketch first!"; return; }
+
+            // 1. Lock UI
+            btn.disabled = true;
+            btn.innerText = "Consulting AI...";
+            status.innerText = "Generating new sketch...";
+            imageEl.style.opacity = 0.2;
+
+            try {
+                // 2. Call your Secure Netlify Proxy
+                const response = await fetch(API_PROXY_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server Error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // 3. Display the result
+                imageEl.src = data.imageUrl;
+                imageEl.onload = () => {
+                    imageEl.style.opacity = 1;
+                    status.innerText = "Sketch ready!";
+                };
+
+            } catch (error) {
+                console.error("Drawing Error:", error);
+                status.innerText = "Error. Check console for details.";
+                alert("Failed to connect: " + error.message + "\n\nMake sure your Netlify URL is correct!");
+            } finally {
+                // 4. Unlock UI
+                btn.disabled = false;
+                btn.innerText = "Create Sketch";
+            }
+        }
+    </script>
+</body>
+</html>
